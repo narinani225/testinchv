@@ -1,0 +1,72 @@
+parameters:
+  PythonPackage: 
+    type: string
+    default: 'python3'
+  PipPackage: 
+    type: string
+    default: 'python3-pip'
+  CheckovPackage: 
+    type: string
+    default: 'checkov'
+  PathVariable: 
+    type: string
+    default: '~/.local/bin'
+  CheckovReportDir: 
+    type: string
+    default: '$(System.DefaultWorkingDirectory)/CheckovReport'
+  ProjectDirectory: 
+    type: string
+    default: ''  # No default value, mandatory parameter.
+  OutputFile: 
+    type: string
+    default: '$(System.DefaultWorkingDirectory)/CheckovReport/Checkov-Report.xml'
+  TestRunTitle: 
+    type: string
+    default: 'Checkov Scan Results'
+  ArtifactName: 
+    type: string
+    default: 'drop'
+
+steps:
+  # Install Python and Pip
+  - script: |
+      sudo apt update
+      sudo apt install -y ${{ parameters.PythonPackage }} ${{ parameters.PipPackage }}
+    displayName: 'Install Python and Pip'
+
+  # Install Checkov
+  - script: |
+      pip3 install --user ${{ parameters.CheckovPackage }}
+      export PATH=$PATH:${{ parameters.PathVariable }}
+      echo $PATH
+    displayName: 'Install and Verify Checkov'
+
+  # Verify Checkov Installation
+  - script: |
+      checkov --version
+    displayName: 'Verify Checkov Installation'
+
+  # Create CheckovReport Directory
+  - script: |
+      mkdir -p ${{ parameters.CheckovReportDir }}
+    displayName: 'Create CheckovReport Directory'
+
+  # Run Checkov Scan
+  - script: |
+      checkov -d ${{ parameters.ProjectDirectory }} --output junitxml > ${{ parameters.OutputFile }}
+    displayName: 'Run Checkov Scan'
+
+  # Publish Checkov Report
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: '${{ parameters.OutputFile }}'
+      testRunTitle: '${{ parameters.TestRunTitle }}'
+    displayName: 'Publish Checkov Report'
+
+  # Publish Build Artifacts
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '${{ parameters.OutputFile }}'
+      ArtifactName: '${{ parameters.ArtifactName }}'
+      publishLocation: 'Container'
+    displayName: 'Publish Artifact'
