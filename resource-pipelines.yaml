@@ -1,0 +1,23 @@
+resources:
+  repositories:
+    - repository: temp
+      type: git
+      name: temp  # Replace with the actual repository name
+      ref: main   # Optional: specify the branch name or commit
+
+stages:
+  - stage: CheckovStage
+    jobs:
+      - job: CheckovJob
+        steps:
+          - template: templates/azurepipelines.yaml@temp  # Reference the template file from the 'temp' repository
+            parameters:
+              ProjectDirectory: $(System.DefaultWorkingDirectory)/BOI_TEST/BOI_PROD/AZURE_SERVICES/service_bus
+              PythonPackage: 'python3'
+              PipPackage: 'python3-pip'
+              CheckovPackage: 'checkov'
+              PathVariable: '~/.local/bin'
+              CheckovReportDir: '$(System.DefaultWorkingDirectory)/CheckovReport'
+              OutputFile: '$(System.DefaultWorkingDirectory)/CheckovReport/Checkov-Report.xml'
+              TestRunTitle: 'Checkov Scan Results'
+              ArtifactName: 'drop'
